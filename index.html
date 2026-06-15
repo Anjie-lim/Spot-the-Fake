@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Slop Detective</title>
+
+<style>
+:root{
+    --bg:#f5f7fb;
+    --card:#ffffff;
+    --primary:#2563eb;
+    --success:#16a34a;
+    --danger:#dc2626;
+    --text:#1f2937;
+    --border:#dbe3ef;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+    padding:24px;
+}
+
+.header{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:20px;
+    box-shadow:0 4px 12px rgba(0,0,0,.05);
+}
+
+.level{
+    font-size:14px;
+    color:#666;
+    margin-bottom:10px;
+}
+
+.image-container{
+    text-align:center;
+}
+
+.image-container img{
+    width:100%;
+    max-height:600px;
+    object-fit:contain;
+    border-radius:12px;
+    border:1px solid var(--border);
+}
+
+.question{
+    text-align:center;
+    margin:20px 0;
+    font-size:20px;
+    font-weight:bold;
+}
+
+.buttons{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    flex-wrap:wrap;
+}
+
+button{
+    border:none;
+    cursor:pointer;
+    padding:14px 24px;
+    border-radius:10px;
+    font-size:16px;
+    font-weight:bold;
+}
+
+.btn-real{
+    background:var(--success);
+    color:white;
+}
+
+.btn-ai{
+    background:var(--danger);
+    color:white;
+}
+
+.btn-next{
+    background:var(--primary);
+    color:white;
+}
+
+.result{
+    display:none;
+    margin-top:20px;
+    padding:16px;
+    border-radius:12px;
+    background:#eef5ff;
+}
+
+.correct{
+    color:var(--success);
+    font-weight:bold;
+}
+
+.incorrect{
+    color:var(--danger);
+    font-weight:bold;
+}
+
+.explanation{
+    margin-top:10px;
+}
+
+.explanation ul{
+    margin-top:10px;
+}
+
+.footer{
+    margin-top:20px;
+    text-align:center;
+}
+
+.final-screen{
+    display:none;
+    text-align:center;
+}
+
+.score{
+    font-size:48px;
+    font-weight:bold;
+    margin:20px 0;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+```
+<div class="header">
+    <h1>AI Slop Detective</h1>
+    <p>Can you identify whether the image contains AI slop?</p>
+</div>
+
+<div id="gameCard" class="card">
+
+    <div id="levelLabel" class="level"></div>
+
+    <div class="image-container">
+        <img id="mainImage" src="" alt="Challenge Image">
+    </div>
+
+    <div class="question">
+        Does this image contain AI slop?
+    </div>
+
+    <div id="answerButtons" class="buttons">
+        <button class="btn-real" onclick="submitAnswer(false)">
+            No Slop
+        </button>
+
+        <button class="btn-ai" onclick="submitAnswer(true)">
+            Has Slop
+        </button>
+    </div>
+
+    <div id="resultPanel" class="result">
+        <div id="resultText"></div>
+
+        <div class="explanation">
+            <h3>Explanation</h3>
+            <ul id="explanationList"></ul>
+        </div>
+
+        <div class="footer">
+            <button class="btn-next" onclick="nextLevel()">
+                Next Level
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<div id="finalScreen" class="card final-screen">
+    <h2>Game Complete!</h2>
+
+    <div id="finalScore" class="score"></div>
+
+    <h3 id="rankText"></h3>
+
+    <p>
+        Remember: strange does not always mean AI.
+        Look for evidence, not just intuition.
+    </p>
+
+    <button class="btn-next" onclick="location.reload()">
+        Play Again
+    </button>
+</div>
+```
+
+</div>
+
+<script>
+
+const levels = [
+
+/* =========================
+   LEVEL 1
+   ========================= */
+{
+    title: "Level 1 - The Extra Finger",
+
+    image: "images/level1.jpg",
+
+    annotated: "images/level1_annotated.jpg",
+
+    hasSlop: true,
+
+    explanation: [
+        "Extra finger on the right hand.",
+        "Cup handle merges into finger."
+    ]
+},
+
+/* =========================
+   LEVEL 2
+   ========================= */
+{
+    title: "Level 2 - Background Chaos",
+
+    image: "images/level2.jpg",
+
+    annotated: "images/level2_annotated.jpg",
+
+    hasSlop: true,
+
+    explanation: [
+        "Background person has extra arm.",
+        "Face distortion.",
+        "Gibberish text on sign."
+    ]
+},
+
+/* =========================
+   LEVEL 3
+   ========================= */
+{
+    title: "Level 3 - False Alarm",
+
+    image: "images/level3.jpg",
+
+    annotated: "images/level3_annotated.jpg",
+
+    hasSlop: false,
+
+    explanation: [
+        "This is a real photograph.",
+        "Unusual pose creates the illusion of AI generation.",
+        "No AI artifacts found."
+    ]
+},
+
+/* =========================
+   LEVEL 4
+   ========================= */
+{
+    title: "Level 4 - Modern AI",
+
+    image: "images/level4.jpg",
+
+    annotated: "images/level4_annotated.jpg",
+
+    hasSlop: true,
+
+    explanation: [
+        "Glasses arm disappears into hair.",
+        "Earring merges into skin."
+    ]
+},
+
+/* =========================
+   LEVEL 5
+   ========================= */
+{
+    title: "Level 5 - Final Boss",
+
+    image: "images/level5.jpg",
+
+    annotated: "images/level5_annotated.jpg",
+
+    hasSlop: false,
+
+    explanation: [
+        "This is a real photograph.",
+        "Perspective and lighting are unusual but legitimate.",
+        "No AI artifacts found."
+    ]
+}
+
+];
+
+let currentLevel = 0;
+let score = 0;
+
+const mainImage = document.getElementById("mainImage");
+const levelLabel = document.getElementById("levelLabel");
+const resultPanel = document.getElementById("resultPanel");
+const resultText = document.getElementById("resultText");
+const explanationList = document.getElementById("explanationList");
+const answerButtons = document.getElementById("answerButtons");
+
+function loadLevel(){
+
+    const level = levels[currentLevel];
+
+    levelLabel.textContent = level.title;
+
+    mainImage.src = level.image;
+
+    resultPanel.style.display = "none";
+
+    answerButtons.style.display = "flex";
+}
+
+function submitAnswer(playerAnswer){
+
+    const level = levels[currentLevel];
+
+    const correct = playerAnswer === level.hasSlop;
+
+    if(correct){
+        score++;
+        resultText.innerHTML =
+            '<div class="correct">✓ Correct!</div>';
+    }
+    else{
+        resultText.innerHTML =
+            '<div class="incorrect">✗ Incorrect</div>';
+    }
+
+    mainImage.src = level.annotated;
+
+    explanationList.innerHTML = "";
+
+    level.explanation.forEach(item => {
+
+        const li = document.createElement("li");
+
+        li.textContent = item;
+
+        explanationList.appendChild(li);
+    });
+
+    answerButtons.style.display = "none";
+
+    resultPanel.style.display = "block";
+}
+
+function nextLevel(){
+
+    currentLevel++;
+
+    if(currentLevel >= levels.length){
+
+        document.getElementById("gameCard").style.display = "none";
+
+        document.getElementById("finalScreen").style.display = "block";
+
+        document.getElementById("finalScore").textContent =
+            score + " / " + levels.length;
+
+        let rank = "";
+
+        if(score === 5){
+            rank = "AI Artifact Expert";
+        }
+        else if(score >= 4){
+            rank = "Strong Observer";
+        }
+        else if(score >= 3){
+            rank = "Developing Detective";
+        }
+        else{
+            rank = "Needs More Investigation";
+        }
+
+        document.getElementById("rankText").textContent = rank;
+
+        return;
+    }
+
+    loadLevel();
+}
+
+loadLevel();
+
+</script>
+
+</body>
+</html>
